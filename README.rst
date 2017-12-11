@@ -61,7 +61,7 @@ Development
 
 3. Test locally with ``py.test``::
 
-    $ py.test test/
+    $ GRASSBIN=~/.local/bin/grass75 PYTHONPATH="`pwd`:$PYTHONPATH" py.test test/py.test test/
 
 5. Test against multiple Python environments using ``tox``::
 
