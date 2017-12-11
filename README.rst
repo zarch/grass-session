@@ -13,6 +13,19 @@ Status
 In development
 
 
+Install
+-------
+
+To install the stable version use: ::
+
+    $ pip install grass-session
+
+
+To install the current development version use: ::
+
+    $ pip install git+https://github.com/zarch/grass-session.git
+
+
 Examples
 --------
 
