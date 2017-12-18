@@ -8,6 +8,8 @@ from grass_session.session import (get_platform_name,
                                    write_gisrc,
                                    grass_init,
                                    grass_create,
-                                   Session)
+                                   Session,
+                                   GRASSBIN,
+                                   GISBASE)
 
 version = "0.1"

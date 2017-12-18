@@ -14,8 +14,9 @@ import tempfile as tmpfile
 
 
 DEFAULTBIN = "grass{version}"
-GRASSBIN = dict(win="C:\OSGeo4W\bin\grass{version}svn.bat",
-                mac="/Applications/GRASS/GRASS-{version[0]}.{version[1]}.app/")
+DEFAULTGRASSBIN = dict(win32="C:\OSGeo4W\bin\grass{version}svn.bat",
+                       darwin=("/Applications/GRASS/"
+                               "GRASS-{version[0]}.{version[1]}.app/"))
 ORIGINAL_ENV = os.environ.copy()
 
 
@@ -53,7 +54,7 @@ def get_grass_bin(version="74"):
     If available takes the value from os.environ GRASSBIN variable."""
     default = DEFAULTBIN.format(version=version)
     platform = get_platform_name()
-    return os.environ.get('GRASSBIN', GRASSBIN.get(platform, default))
+    return os.environ.get('GRASSBIN', DEFAULTGRASSBIN.get(platform, default))
 
 
 def get_grass_gisbase(grassbin=None):
@@ -243,11 +244,11 @@ class Session():
 
 
 # set path wehn importing the library
-grassbin = get_grass_bin()
-print("GRASSBIN:", grassbin)
-gisbase = get_grass_gisbase(grassbin=grassbin)
-print("GISBASE:", gisbase)
-set_grass_path_env(gisbase, env=os.environ, grassbin=grassbin)
+GRASSBIN = get_grass_bin()
+print("GRASSBIN:", GRASSBIN)
+GISBASE = get_grass_gisbase(grassbin=GRASSBIN)
+print("GISBASE:", GISBASE)
+set_grass_path_env(GISBASE, env=os.environ, grassbin=GRASSBIN)
 
 
 if __name__ == "__main__":
