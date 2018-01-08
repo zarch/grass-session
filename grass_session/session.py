@@ -177,8 +177,9 @@ def grass_init(gisbase, gisdb, location, mapset='PERMANENT', env=None):
 
     # Set GISDBASE environment variable
     env['GISDBASE'] = gisdb
+    # TODO: should we check if the gisdb, location and mapset are valid?
     # permanent = os.listdir(os.path.join(gisdb, location, "PERMANENT"))
-    mapset = os.listdir(os.path.join(gisdb, location, mapset))
+    # mapset = os.listdir(os.path.join(gisdb, location, mapset))
     env['GISRC'] = write_gisrc(gisdb, location, mapset)
     return env
 
