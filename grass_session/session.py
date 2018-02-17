@@ -82,7 +82,12 @@ def set_grass_path_env(gisbase=None, env=None, grassbin=None):
     gisbase = gisbase if gisbase else get_grass_gisbase(grassbin=grassbin)
     # Set GISBASE environment variable
     env['GISBASE'] = gisbase
-    env['PATH'] += os.pathsep + os.path.join(gisbase, 'bin')
+
+    grass_bin = os.path.join(gisbase, 'bin')
+    if 'PATH' in env:
+        env['PATH'] += os.pathsep + grass_bin
+    else:
+        env['PATH'] = grass_bin
     env['PATH'] += os.pathsep + os.path.join(gisbase, 'scripts')
     # add path to GRASS addons
     home = os.path.expanduser("~")
@@ -108,9 +113,11 @@ def set_grass_path_env(gisbase=None, env=None, grassbin=None):
         env['PATH'] += os.pathsep + os.path.join(addon_base, 'scripts')
 
     # define LD_LIBRARY_PATH
+    ld_path = os.path.join(gisbase, 'lib')
     if 'LD_LIBRARY_PATH' not in env:
-        env['LD_LIBRARY_PATH'] = ''
-    env['LD_LIBRARY_PATH'] += os.pathsep + os.path.join(gisbase, 'lib')
+        env['LD_LIBRARY_PATH'] = ld_path
+    else:
+        env['LD_LIBRARY_PATH'] += os.pathsep + ld_path
 
     # define GRASS-Python path variable
     pypath = env.get('PYTHONPATH', "")
@@ -178,7 +185,7 @@ def grass_init(gisbase, gisdb, location, mapset='PERMANENT', env=None):
     # Set GISDBASE environment variable
     env['GISDBASE'] = gisdb
     # permanent = os.listdir(os.path.join(gisdb, location, "PERMANENT"))
-    mapset = os.listdir(os.path.join(gisdb, location, mapset))
+    # mapset = os.listdir(os.path.join(gisdb, location, mapset))
     env['GISRC'] = write_gisrc(gisdb, location, mapset)
     return env
 
@@ -216,12 +223,14 @@ class Session():
     def open(self, gisdb, location, mapset=None, create_opts=None, env=None):
         """Open or create GRASS GIS mapset."""
         env = self.env if env is None else env
+        mapset = "PERMANENT" if mapset is None else mapset
+        lpath = os.path.join(gisdb, location)
+        mpath = os.path.join(gisdb, location, mapset)
         if create_opts is not None:
-            if mapset is None:
-                path = os.path.join(gisdb, location)
-                mapset = "PERMANENT"
+            if mapset == "PERMANENT" and not os.path.exists(lpath):
+                path = lpath
             else:
-                path = os.path.join(gisdb, location, mapset)
+                path = mpath
             self.create(path, create_opts=create_opts)
         return grass_init(self.gisbase, gisdb, location, mapset, env=env)
 
