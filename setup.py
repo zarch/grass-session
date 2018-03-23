@@ -14,11 +14,13 @@ setup(
     url="https://github.com/zarch/grass-session",
     author="Pietro Zambelli",
     author_email="peter.zamb@gmail.com",
+    # list of valid classifiers
+    # https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
         "Development Status :: 4 - Beta",
         "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: GPLv3",  # TODO: check
+        "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
     ],
     packages=find_packages(),
 )
