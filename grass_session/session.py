@@ -252,9 +252,7 @@ class Session():
 
 # set path wehn importing the library
 GRASSBIN = get_grass_bin()
-print("GRASSBIN:", GRASSBIN)
 GISBASE = get_grass_gisbase(grassbin=GRASSBIN)
-print("GISBASE:", GISBASE)
 set_grass_path_env(GISBASE, env=os.environ, grassbin=GRASSBIN)
 
 
