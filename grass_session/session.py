@@ -128,9 +128,6 @@ def set_grass_path_env(gisbase=None, env=None, grassbin=None):
     if grasspy not in sys.path:
         sys.path.insert(0, grasspy)
 
-    env['LANG'] = 'en_US.UTF-8'
-    env['LOCALE'] = 'C'
-    env['LC_ALL'] = 'C'
     return env
 
 
