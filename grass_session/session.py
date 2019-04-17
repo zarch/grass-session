@@ -69,7 +69,8 @@ def get_grass_gisbase(grassbin=None):
         print("out:", out)
         print("err:", err)
         proc = subprocess.Popen(cmd, shell=True, env=ORIGINAL_ENV,
-                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
         raise RuntimeError(("Cannot find GRASS GIS start script: {grassbin}, "
                             "set the right one using the GRASSBIN environm. "
                             "variable").format(grassbin=grassbin))
@@ -210,9 +211,32 @@ def grass_create(grassbin, path, create_opts):
 
 
 class Session():
-    def __init__(self, grassversion="74", grassbin=None, env=None,
+    def __init__(self, grassversion="76", grassbin=None, env=None,
                  *aopen, **kwopen):
-        """Create a GRASS GIS session"""
+        """Create a GRASS GIS session.
+
+        Parameters
+        ----------
+        grassversion : string
+            Default GRASS GIS stable version
+        grassbin : path
+            Path to the GRASS binary file
+        mapset : string
+            Mapset name
+        env : dict
+            Dictionary to set environmental variable for the session
+
+        Examples
+        --------
+        >>> import os
+        >>> import tempfile
+        >>> tmpdir = tempfile.mkdtemp()
+        >>> with Session(gisdb=TMPDIR, location="loc", mapset="mset",
+        ...              create_opts="EPSG:3035") as sess:
+        ...     print("\nPROJ")
+        ...     print(parse_command("g.proj", flags="g"))
+
+        """
         self.env = os.environ if env is None else env
         self.grassbin = (get_grass_bin(version=grassversion)
                          if grassbin is None else grassbin)
@@ -222,7 +246,37 @@ class Session():
         self._kwopen = kwopen
 
     def open(self, gisdb, location, mapset=None, create_opts=None, env=None):
-        """Open or create GRASS GIS mapset."""
+        """Open or create GRASS GIS mapset.
+
+        Parameters
+        ----------
+        gisdb : string, path-like
+            Path to the GISDB directory
+        location : string
+            Location name
+        mapset : string
+            Mapset name
+        create_opts : string
+            Valid string for the grass `-c` flag
+            (`[-c | -c geofile | -c EPSG:code[:datum_trans] | -c XY]`)
+        env : dict
+            Dictionary to set environmental variable for the session
+
+        Examples
+        --------
+        Create a new location and mapset
+
+        >>> import os
+        >>> import tempfile
+        >>> tmpdir = tempfile.mkdtemp()
+        >>> sess = Session()
+        >>> sess.open(gisdb=TMPDIR, location="loc", mapset="mset",
+        ...           create_opts="EPSG:3035")
+        >>> print("\nPROJ")
+        >>> print(parse_command("g.proj", flags="g"))
+        >>> sess.close()
+
+        """
         env = self.env if env is None else env
         mapset = "PERMANENT" if mapset is None else mapset
         lpath = os.path.join(gisdb, location)
@@ -236,7 +290,18 @@ class Session():
         return grass_init(self.gisbase, gisdb, location, mapset, env=env)
 
     def create(self, path, create_opts):
-        """Create a new mapset"""
+        """Create a new mapset
+
+        Parameters
+        ----------
+        path : string, path-like
+            Path to gisdb/location/mapset
+        create_opts : string
+            Valid string for the grass `-c` flag
+            (`[-c | -c geofile | -c EPSG:code[:datum_trans] | -c XY]`)
+
+        See an example in `Session.open()` method.
+        """
         grass_create(self.grassbin, path, create_opts)
 
     def close(self):
