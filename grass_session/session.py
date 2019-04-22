@@ -49,12 +49,27 @@ def get_platform_name(__cache=[None, ]):
     return __cache[0]
 
 
-def get_grass_bin(version="74"):
+def get_grass_bin(version=None):
     """Return the path to the GRASS GIS binary file command.
     If available takes the value from os.environ GRASSBIN variable."""
-    default = DEFAULTBIN.format(version=version)
+    grassbin = os.environ.get("GRASSBIN")
+    if grassbin:
+        return grassbin
+
     platform = get_platform_name()
-    return os.environ.get('GRASSBIN', DEFAULTGRASSBIN.get(platform, default))
+    grassbin_pattern = DEFAULTGRASSBIN.get(platform, DEFAULTBIN)
+
+    versions = [version] if version else ["76", "74"]
+    for version in versions:
+        grassbin = grassbin_pattern.format(version=version)
+        try:
+            with open(os.devnull, "w+b") as devnull:
+                subprocess.check_call([grassbin, "--config"],
+                                      stdout=devnull,
+                                      stderr=subprocess.STDOUT)
+            return grassbin
+        except OSError:
+            pass
 
 
 def get_grass_gisbase(grassbin=None):
@@ -208,7 +223,7 @@ def grass_create(grassbin, path, create_opts):
 
 
 class Session():
-    def __init__(self, grassversion="76", grassbin=None, env=None,
+    def __init__(self, grassversion=None, grassbin=None, env=None,
                  *aopen, **kwopen):
         """Create a GRASS GIS session.
 
