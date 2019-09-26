@@ -59,7 +59,7 @@ def get_grass_bin(version=None):
     platform = get_platform_name()
     grassbin_pattern = DEFAULTGRASSBIN.get(platform, DEFAULTBIN)
 
-    versions = [version] if version else ["76", "74"]
+    versions = [version] if version else ["78", "76", "74"]
     for version in versions:
         grassbin = grassbin_pattern.format(version=version)
         try:
