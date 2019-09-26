@@ -9,7 +9,6 @@ from grass_session.session import (get_platform_name,
                                    grass_init,
                                    grass_create,
                                    Session,
-                                   GRASSBIN,
                                    GISBASE)
 
 version = "0.1"
