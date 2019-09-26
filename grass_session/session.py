@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Fri Dec  1 18:36:22 2017
@@ -12,11 +12,9 @@ import subprocess
 
 import tempfile as tmpfile
 
+if sys.version_info[0] >= 3:
+    from shutil import which
 
-DEFAULTBIN = "grass{version}"
-DEFAULTGRASSBIN = dict(win32="C:\OSGeo4W\bin\grass{version}svn.bat",
-                       darwin=("/Applications/GRASS/"
-                               "GRASS-{version[0]}.{version[1]}.app/"))
 ORIGINAL_ENV = os.environ.copy()
 
 
@@ -49,12 +47,66 @@ def get_platform_name(__cache=[None, ]):
     return __cache[0]
 
 
-def get_grass_bin(version="74"):
+def is_executable(fpath, platform):
+    """Returns true if the path 'fpath' points to an executable file.
+    For Windows only .py, .exe, and .bat are treated as accepted executables."""
+    if os.access(fpath, os.X_OK) and os.path.isfile(fpath):
+        if platform == 'win32':
+            win_execs = ['py', 'bat', 'exe']
+            if '.' in fpath:
+                if fpath.split('.')[-1].lower() in win_execs:
+                    is_exec = True
+                else:
+                    is_exec = False
+        else:
+            is_exec = True
+    else:
+        is_exec = False
+    return is_exec
+
+
+def get_grass_bin(version=None):
     """Return the path to the GRASS GIS binary file command.
-    If available takes the value from os.environ GRASSBIN variable."""
-    default = DEFAULTBIN.format(version=version)
-    platform = get_platform_name()
-    return os.environ.get('GRASSBIN', DEFAULTGRASSBIN.get(platform, default))
+    If available takes the value from os.environ GRASSBIN variable,
+    else the GRASS binary found by which (only Python 3) or the latest GRASS
+    executable on the path."""
+    version = '' if not version else version
+    grassbin = os.environ.get("GRASSBIN")
+    if grassbin:
+        return grassbin
+
+    if sys.version_info[0] >= 3:
+        grassbin_path = which('grass{}'.format(version))
+        if grassbin_path:
+            grassbin = os.path.split(grassbin_path)[1]
+            return grassbin
+
+    if not grassbin:
+        # lazy import
+        from glob import glob
+
+        # Fallback if default GRASS bin has not been found
+        path_env = os.environ.get('PATH')
+        platform = get_platform_name()
+        path_sep = ':' if platform != 'win32' else ';'
+        grassbins = []
+        for dir in path_env.split(path_sep):
+            grass_on_path = glob('{}{}grass{}*'.format(dir, os.path.sep,
+                                                       version))
+            if len(grass_on_path) > 0:
+                for fpath in grass_on_path:
+                    if is_executable(fpath, platform):
+                        grassbins.append(os.path.split(fpath)[1])
+
+        if len(grassbins) > 0:
+            grassbins.sort()
+            grassbin = grassbins[-1]
+            return grassbin
+
+    if not grassbin:
+        raise RuntimeError(("Cannot find GRASS GIS start script: 'grass{}', "
+                            "set the right one using the GRASSBIN environm. "
+                            "variable").format(grassbin=grassbin))
 
 
 def get_grass_gisbase(grassbin=None):
@@ -95,17 +147,21 @@ def set_grass_path_env(gisbase=None, env=None, grassbin=None):
     env['PATH'] += os.pathsep + os.path.join(home, '.grass7', 'addons',
                                              'scripts')
 
+    pyversion = sys.version_info[0]
+
     platform = get_platform_name()
     if platform == "win32":
         config_dirname = "GRASS7"
         config_dir = os.path.join(os.getenv('APPDATA'), config_dirname)
         env['PATH'] += os.pathsep + os.path.join(gisbase, 'extrabin')
-        env['GRASS_PYTHON'] = env.get('GRASS_PYTHON', "python.exe")
+        env['GRASS_PYTHON'] = env.get('GRASS_PYTHON',
+                                      "python{}.exe".format(pyversion))
         env['GRASS_SH'] = os.path.join(gisbase, 'msys', 'bin', 'sh.exe')
     else:
         config_dirname = ".grass7"
         config_dir = os.path.join(home, config_dirname)
-        env['GRASS_PYTHON'] = env.get('GRASS_PYTHON', "python")
+        env['GRASS_PYTHON'] = env.get('GRASS_PYTHON',
+                                      "python{}".format(pyversion))
 
     addon_base = os.path.join(config_dir, 'addons')
     env['GRASS_ADDON_BASE'] = addon_base
@@ -211,7 +267,7 @@ def grass_create(grassbin, path, create_opts):
 
 
 class Session():
-    def __init__(self, grassversion="76", grassbin=None, env=None,
+    def __init__(self, grassversion=None, grassbin=None, env=None,
                  *aopen, **kwopen):
         """Create a GRASS GIS session.
 
