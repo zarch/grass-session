@@ -442,7 +442,7 @@ class Session():
         self.env = clean_grass_path_env(gisbase=self.gisbase, env=self.env, grassbin=None)
 
     def __enter__(self):
-        self.open(*self._aopen, **self._kwopen, env=self.env)
+        self.open(*self._aopen, **self._kwopen)
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
