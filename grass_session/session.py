@@ -203,21 +203,22 @@ def set_grass_path_env(gisbase=None, env=None, grassbin=None):
 
 def clean_grass_path_env(gisbase=None, env=None, grassbin=None):
     import glob
-    """Return a dictionary with the modified environmental variables."""
+    """Remove GRASS version related variables from the environment."""
     env = os.environ if env is None else env
     gisbase = gisbase if gisbase else get_grass_gisbase(grassbin=grassbin)
 
     grass_bin = os.path.join(gisbase, 'bin')
+    # Remove from PATH
     env['PATH'] = env['PATH'].replace(os.pathsep + grass_bin, '')
     env['PATH'] = env['PATH'].replace(os.pathsep + os.path.join(gisbase, 'scripts'), '')
 
     pyversion = sys.version_info[0]
 
-    # define LD_LIBRARY_PATH
+    # Remove from LD_LIBRARY_PATH
     ld_path = os.path.join(gisbase, 'lib')
     env['LD_LIBRARY_PATH'] = env['LD_LIBRARY_PATH'].replace(os.pathsep + ld_path, '')
 
-    # define GRASS-Python path variable
+    # Remove from PYTHONPATH
     grasspy = os.path.join(gisbase, "etc", "python")
     env['PYTHONPATH'] = env['PYTHONPATH'].replace(grasspy, '')
     env['PYTHONPATH'] = env['PYTHONPATH'].replace(os.pathsep + os.pathsep, os.pathsep)
