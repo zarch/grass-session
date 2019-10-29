@@ -197,8 +197,8 @@ def set_grass_path_env(gisbase=None, env=None, grassbin=None):
         sys.path.insert(0, grasspy)
 
     env['LANG'] = 'en_US.UTF-8'
-    env['LOCALE'] = 'C'
-    env['LC_ALL'] = 'C'
+    env['LOCALE'] = 'en_US.UTF-8'
+    env['LC_ALL'] = 'en_US.UTF-8'
     return env
 
 def clean_grass_path_env(gisbase=None, env=None, grassbin=None):
