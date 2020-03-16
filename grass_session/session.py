@@ -130,7 +130,6 @@ def get_grass_gisbase(grassbin=None):
 
 
 def set_grass_path_env(gisbase=None, env=None, grassbin=None):
-    import glob
     """Return a dictionary with the modified environmental variables."""
     env = os.environ if env is None else env
     gisbase = gisbase if gisbase else get_grass_gisbase(grassbin=grassbin)
