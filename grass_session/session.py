@@ -317,7 +317,7 @@ def load_libs(gisbase=None):
     remains = []
     grasslibs = glob('{}{}*.{}'.format(ld_path, os.path.sep, lib_suffix))
     if len(grasslibs) == 0:
-        raise RuntimeError('No GRASS libraries found in {}.'.format(ld_path))
+        raise RuntimeError('No GRASS GIS libraries found in {}.'.format(ld_path))
     for lib in grasslibs:
         try:
             ctypes.CDLL(lib, mode=1)
