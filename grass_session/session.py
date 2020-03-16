@@ -336,7 +336,7 @@ def load_libs(gisbase=None):
                 pass
 
     if len(remains) > 0:
-        raise RuntimeError('Could not load all the folowing GRASS libraries from {}!'.format(remains))
+        raise RuntimeError('Cannot load all the following GRASS GIS libraries from {}!'.format(remains))
 
 
 class Session():
