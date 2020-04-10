@@ -106,7 +106,7 @@ def get_grass_bin(version=None):
     if not grassbin:
         raise RuntimeError(("Cannot find GRASS GIS start script: 'grass{}', "
                             "set the right one using the GRASSBIN environm. "
-                            "variable").format(grassbin=grassbin))
+                            "variable").format(version))
 
 
 def get_grass_gisbase(grassbin=None):
@@ -138,14 +138,18 @@ def set_grass_path_env(gisbase=None, env=None, grassbin=None):
 
     grass_bin = os.path.join(gisbase, 'bin')
     if 'PATH' in env:
-        env['PATH'] += os.pathsep + grass_bin
+        if grass_bin not in env['PATH']:
+            env['PATH'] += os.pathsep + grass_bin
     else:
         env['PATH'] = grass_bin
-    env['PATH'] += os.pathsep + os.path.join(gisbase, 'scripts')
+    if os.path.join(gisbase, 'scripts') not in env['PATH']:
+        env['PATH'] += os.pathsep + os.path.join(gisbase, 'scripts')
     # add path to GRASS addons
     home = os.path.expanduser("~")
-    env['PATH'] += os.pathsep + os.path.join(home, '.grass7', 'addons',
-                                             'scripts')
+
+    if os.path.join(home, '.grass7', 'addons', 'scripts') not in env['PATH']:
+        env['PATH'] += os.pathsep + os.path.join(home, '.grass7', 'addons',
+                                                 'scripts')
 
     pyversion = sys.version_info[0]
 
@@ -153,7 +157,8 @@ def set_grass_path_env(gisbase=None, env=None, grassbin=None):
     if platform == "win32":
         config_dirname = "GRASS7"
         config_dir = os.path.join(os.getenv('APPDATA'), config_dirname)
-        env['PATH'] += os.pathsep + os.path.join(gisbase, 'extrabin')
+        if os.path.join(gisbase, 'extrabin') not in env['PATH']:
+            env['PATH'] += os.pathsep + os.path.join(gisbase, 'extrabin')
         env['GRASS_PYTHON'] = env.get('GRASS_PYTHON',
                                       "python{}.exe".format(pyversion))
         env['GRASS_SH'] = os.path.join(gisbase, 'msys', 'bin', 'sh.exe')
@@ -165,16 +170,21 @@ def set_grass_path_env(gisbase=None, env=None, grassbin=None):
 
     addon_base = os.path.join(config_dir, 'addons')
     env['GRASS_ADDON_BASE'] = addon_base
-    env['PATH'] += os.pathsep + os.path.join(addon_base, 'bin')
+    if os.path.join(addon_base, 'bin') not in env['PATH']:
+        env['PATH'] += os.pathsep + os.path.join(addon_base, 'bin')
     if platform != "win32":
-        env['PATH'] += os.pathsep + os.path.join(addon_base, 'scripts')
+        if os.path.join(addon_base, 'scripts') not in env['PATH']:
+            env['PATH'] += os.pathsep + os.path.join(addon_base, 'scripts')
 
     # define LD_LIBRARY_PATH
     ld_path = os.path.join(gisbase, 'lib')
     if 'LD_LIBRARY_PATH' not in env:
         env['LD_LIBRARY_PATH'] = ld_path
     else:
-        env['LD_LIBRARY_PATH'] += os.pathsep + ld_path
+        if env['LD_LIBRARY_PATH'] == '':
+            env['LD_LIBRARY_PATH'] = ld_path
+        elif ld_path not in env['LD_LIBRARY_PATH']:
+            env['LD_LIBRARY_PATH'] += os.pathsep + ld_path
 
     # define GRASS-Python path variable
     pypath = env.get('PYTHONPATH', "")
@@ -186,8 +196,31 @@ def set_grass_path_env(gisbase=None, env=None, grassbin=None):
         sys.path.insert(0, grasspy)
 
     env['LANG'] = 'en_US.UTF-8'
-    env['LOCALE'] = 'C'
-    env['LC_ALL'] = 'C'
+    env['LOCALE'] = 'en_US.UTF-8'
+    env['LC_ALL'] = 'en_US.UTF-8'
+    return env
+
+def clean_grass_path_env(gisbase=None, env=None, grassbin=None):
+    import glob
+    """Remove GRASS version related variables from the environment."""
+    env = os.environ if env is None else env
+    gisbase = gisbase if gisbase else get_grass_gisbase(grassbin=grassbin)
+
+    grass_bin = os.path.join(gisbase, 'bin')
+    # Remove from PATH
+    env['PATH'] = env['PATH'].replace(os.pathsep + grass_bin, '')
+    env['PATH'] = env['PATH'].replace(os.pathsep + os.path.join(gisbase, 'scripts'), '')
+
+    pyversion = sys.version_info[0]
+
+    # Remove from LD_LIBRARY_PATH
+    ld_path = os.path.join(gisbase, 'lib')
+    env['LD_LIBRARY_PATH'] = env['LD_LIBRARY_PATH'].replace(os.pathsep + ld_path, '')
+
+    # Remove from PYTHONPATH
+    grasspy = os.path.join(gisbase, "etc", "python")
+    env['PYTHONPATH'] = env['PYTHONPATH'].replace(grasspy, '')
+    env['PYTHONPATH'] = env['PYTHONPATH'].replace(os.pathsep + os.pathsep, os.pathsep)
     return env
 
 
@@ -244,7 +277,9 @@ def grass_init(gisbase, gisdb, location, mapset='PERMANENT', env=None):
     # TODO: should we check if the gisdb, location and mapset are valid?
     # permanent = os.listdir(os.path.join(gisdb, location, "PERMANENT"))
     # mapset = os.listdir(os.path.join(gisdb, location, mapset))
+    load_libs(env['GISBASE'])
     env['GISRC'] = write_gisrc(gisdb, location, mapset)
+
     return env
 
 
@@ -264,6 +299,43 @@ def grass_create(grassbin, path, create_opts):
                                                  create_opts=create_opts,
                                                  cmd=cmd,
                                                  out=out, err=err))
+
+
+def load_libs(gisbase=None):
+    # lazy import
+    from glob import glob
+    import ctypes
+
+    # define LD_LIBRARY_PATH
+    gisbase = os.environ['GISBASE'] if not gisbase else gisbase
+    if not gisbase:
+        raise RuntimeError('No gisbase supplied!')
+    ld_path = os.path.join(gisbase, 'lib')
+    lib_suffix = 'dll' if sys.platform == "win32" else 'so'
+    print('Loading libraries from {}'.format(ld_path))
+    remains = []
+    grasslibs = glob('{}{}*.{}'.format(ld_path, os.path.sep, lib_suffix))
+    if len(grasslibs) == 0:
+        raise RuntimeError('No GRASS GIS libraries found in {}.'.format(ld_path))
+    for lib in grasslibs:
+        try:
+            ctypes.CDLL(lib, mode=1)
+        except:
+            remains.append(lib)
+
+    tries_max = len(remains)
+    tries = 1
+    while len(remains) > 0 and tries < tries_max:
+        tries += 1
+        for lib in remains:
+            try:
+                ctypes.CDLL(lib, mode=1)
+                remains.remove(lib)
+            except:
+                pass
+
+    if len(remains) > 0:
+        raise RuntimeError('Cannot load all the following GRASS GIS libraries from {}!'.format(remains))
 
 
 class Session():
@@ -366,6 +438,8 @@ class Session():
             self.env.pop("GIS_LOCK")
             os.remove(self.env.pop("GISRC"))
 
+        self.env = clean_grass_path_env(gisbase=self.gisbase, env=self.env, grassbin=None)
+
     def __enter__(self):
         self.open(*self._aopen, **self._kwopen)
         return self
@@ -380,9 +454,10 @@ print("GRASSBIN:", GRASSBIN)
 GISBASE = get_grass_gisbase(grassbin=GRASSBIN)
 print("GISBASE:", GISBASE)
 set_grass_path_env(GISBASE, env=os.environ, grassbin=GRASSBIN)
-
+load_libs(GISBASE)
 
 if __name__ == "__main__":
-    ggrassbin = get_grass_bin()
-    gisbase = get_grass_gisbase(grassbin=ggrassbin)
+    grassbin = get_grass_bin()
+    gisbase = get_grass_gisbase(grassbin=grassbin)
     env = set_grass_path_env(gisbase=gisbase, env=os.environ)
+    load_libs(gisbase)

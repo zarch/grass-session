@@ -62,7 +62,7 @@ class TestCreate(object):
 
         # check files
         permanent = os.path.join(tmp_vars["location_path"], "PERMANENT")
-        files = sorted(["DEFAULT_WIND", "MYNAME", "PROJ_EPSG",
+        files = sorted([".tmp", "DEFAULT_WIND", "MYNAME", "PROJ_EPSG",
                         "PROJ_INFO", "PROJ_UNITS", "sqlite", "VAR", "WIND"])
         assert sorted(os.listdir(permanent)) == files
 
@@ -74,5 +74,5 @@ class TestCreate(object):
         gs.grass_create(grassbin=tmp_vars["grassbin"], path=tmp_vars["mapset"],
                         create_opts="")
         assert os.path.exists(tmp_vars["mapset"]) is True
-        files = sorted(["sqlite", "VAR", "WIND"])
+        files = sorted([".tmp", "sqlite", "VAR", "WIND"])
         assert sorted(os.listdir(tmp_vars["mapset"])) == files

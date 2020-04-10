@@ -8,7 +8,7 @@ os.chdir(os.path.dirname(sys.argv[0]) or ".")
 
 setup(
     name="grass-session",
-    version="0.2",
+    version="0.3",
     description="GRASS GIS session utilities",
     long_description=open("README.rst", "rt").read(),
     url="https://github.com/zarch/grass-session",
