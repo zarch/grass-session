@@ -64,7 +64,10 @@ class TestCreate(object):
         permanent = os.path.join(tmp_vars["location_path"], "PERMANENT")
         files = sorted(["DEFAULT_WIND", "MYNAME", "PROJ_EPSG",
                         "PROJ_INFO", "PROJ_UNITS", "sqlite", "VAR", "WIND"])
-        assert sorted(os.listdir(permanent)) == files
+        genfiles = set(os.listdir(permanent))
+        # check that all the generated files are the one required by GRASS GIS
+        for fl in files:
+            assert fl in genfiles
 
         # check PROJ_EPSG content
         with open(os.path.join(permanent, "PROJ_EPSG"), mode="r") as prj:
@@ -75,4 +78,8 @@ class TestCreate(object):
                         create_opts="")
         assert os.path.exists(tmp_vars["mapset"]) is True
         files = sorted(["sqlite", "VAR", "WIND"])
-        assert sorted(os.listdir(tmp_vars["mapset"])) == files
+        genfiles = os.listdir(tmp_vars["mapset"])
+        # check that all the generated files are the one required by GRASS GIS
+        for fl in files:
+            assert fl in genfiles
+
