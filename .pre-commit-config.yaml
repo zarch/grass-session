@@ -1,0 +1,30 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.3.0
+    hooks:
+    -   id: end-of-file-fixer
+    -   id: trailing-whitespace
+    -   id: name-tests-test
+    -   id: check-executables-have-shebangs
+    -   id: fix-encoding-pragma
+    -   id: flake8
+    -   id: mixed-line-ending
+    -   id: requirements-txt-fixer
+-   repo: https://gitlab.com/pycqa/flake8
+    rev: 3.7.4
+    hooks:
+    -   id: flake8
+-   repo: https://github.com/pre-commit/mirrors-isort
+    rev: v4.3.21
+    hooks:
+    - id: isort
+-   repo: https://github.com/psf/black
+    rev: 19.3b0
+    hooks:
+    - id: black
+      language_version: python3.7
+# -   repo: https://github.com/pre-commit/mirrors-mypy
+#     rev: ''  # Use the sha / tag you want to point at
+#     hooks:
+#     -   id: mypy
+#        additional_dependencies: [tokenize-rt==3.2.0]

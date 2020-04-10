@@ -1,11 +1,11 @@
-import pathlib
-import tempfile
+# -*- coding: utf-8 -*-
 import os
+import pathlib
 import shutil
+import tempfile
 
 import pytest
-
-from grass_session import get_grass_bin, grass_create, Session
+from grass_session import Session, get_grass_bin, grass_create
 
 
 """
@@ -91,9 +91,7 @@ def __check_mandatory_files_in_mapset(mapset_path):
 
 def __check_epsg(mapset_path, epsg_code):
     with open(os.path.join(mapset_path, "PROJ_EPSG"), mode="r") as prj:
-        assert prj.readlines() == [
-            f"epsg: {epsg_code}\n",
-        ]
+        assert prj.readlines() == [f"epsg: {epsg_code}\n"]
 
 
 def __grass_create(grassbin, location_path, create_opts, mapset_path):
@@ -139,7 +137,7 @@ def __Session_create(tmp_vars):
         gisdb=tmp_vars["tmpdir"],
         location=tmp_vars["location_name"],
         create_opts=tmp_vars["create_opts"],
-    ) as PERMANENT:
+    ):
         # execute some command inside PERMANENT
         g.mapsets(flags="l")
         g.list(type="raster", flags="m")
@@ -160,7 +158,7 @@ def __Session_create(tmp_vars):
         location=tmp_vars["location_name"],
         mapset=tmp_vars["mapset_name"],
         create_opts="",
-    ) as user:
+    ):
         # execute some command inside user
         g.mapsets(flags="l")
         g.list(type="raster", flags="m")
