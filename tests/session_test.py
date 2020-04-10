@@ -5,7 +5,7 @@ import sys
 import tempfile
 
 import pytest
-from grass_session import Session, get_grass_bin, grass_create
+from grass_session import Session, TmpSession, get_grass_bin, grass_create
 
 
 """
@@ -33,20 +33,12 @@ print("done!")
 """
 
 
-@pytest.fixture(scope="function")
-def tmp_vars(request):
+def __gvars():
     tmpdir = tempfile.mkdtemp()
     location_name = "location"
     location_path = os.path.join(tmpdir, location_name)
     mapset_name = "test"
     mapset_path = os.path.join(location_path, mapset_name)
-
-    def finalizer():
-        print("teardown")
-        shutil.rmtree(location_path, ignore_errors=False)
-
-    print("setup")
-    request.addfinalizer(finalizer)
     return dict(
         tmpdir=tmpdir,
         location_name=location_name,
@@ -56,6 +48,24 @@ def tmp_vars(request):
         mapset_path=mapset_path,
         grassbin=get_grass_bin(),
     )
+
+
+@pytest.fixture(scope="function")
+def gen_vars(request):
+    return __gvars()
+
+
+@pytest.fixture(scope="function")
+def tmp_vars(request):
+    tmp = __gvars()
+
+    def finalizer():
+        print("teardown")
+        shutil.rmtree(tmp["location_path"], ignore_errors=False)
+
+    print("setup")
+    request.addfinalizer(finalizer)
+    return tmp
 
 
 def __check_PERMANENT_in_folder(location_path):
@@ -185,3 +195,55 @@ def test__Session__create__with_pathlib(tmp_vars):
         )
     )
     __Session_create(tmp_vars)
+
+
+def __TmpSession_create(tvars):
+
+    from grass.pygrass.modules.shortcuts import general as g
+
+    with TmpSession(
+        gisdb=tvars["tmpdir"],
+        location=tvars["location_name"],
+        create_opts=tvars["create_opts"],
+    ):
+        # check if PERMANENT has been created
+        __check_PERMANENT_in_folder(tvars["location_path"])
+
+        # check files
+        permanent = os.path.join(tvars["location_path"], "PERMANENT")
+        __check_mandatory_files_in_PERMANENT(permanent)
+
+        # check PROJ_EPSG content
+        __check_epsg(permanent, 3035)
+
+        # check creation of a mapset
+        with TmpSession(
+            gisdb=tvars["tmpdir"],
+            location=tvars["location_name"],
+            mapset=tvars["mapset_name"],
+            create_opts="",
+        ):
+            __check_mandatory_files_in_mapset(tvars["mapset_path"])
+
+        # check that out of the session the mapset has been removed
+        assert os.path.exists(tvars["mapset_path"]) is False
+    assert os.path.exists(permanent) is False
+    assert os.path.exists(tvars["location_path"]) is False
+
+
+def test__TmpSession__create(gen_vars):
+    __TmpSession_create(gen_vars)
+
+
+@pytest.mark.skipif(sys.version_info < (3, 6), reason="requires python3.6 or higher")
+def test__TmpSession__create__with_pathlib(gen_vars):
+    import pathlib
+
+    gen_vars.update(
+        dict(
+            grassbin=pathlib.Path(gen_vars["grassbin"]),
+            location_path=pathlib.Path(gen_vars["location_path"]),
+            mapset_path=pathlib.Path(gen_vars["mapset_path"]),
+        )
+    )
+    __TmpSession_create(gen_vars)

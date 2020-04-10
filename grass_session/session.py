@@ -7,7 +7,9 @@ Created on Fri Dec  1 18:36:22 2017
 """
 from __future__ import print_function
 
+import atexit
 import os
+import shutil
 import subprocess
 import sys
 import tempfile as tmpfile
@@ -357,7 +359,7 @@ def load_libs(gisbase=None):
         )
 
 
-class Session:
+class Session(object):
     def __init__(self, grassversion=None, grassbin=None, env=None, *aopen, **kwopen):
         """Create a GRASS GIS session.
 
@@ -467,6 +469,35 @@ class Session:
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
+
+
+class TmpSession(Session):
+    """Create a temporary session. The session is removed at the program exit.
+    """
+
+    def __init__(self, *args, **kwargs):
+        self.created_path = None
+        super(TmpSession, self).__init__(*args, **kwargs)
+
+    def create(self, path, create_opts):
+        """Create a new temporary location/mapset.
+        """
+        self.created_path = path
+        grass_create(self.grassbin, path, create_opts)
+        atexit.register(self.close)
+
+    def close(self):
+        """Close a GRASS Session."""
+        if "GISRC" in self.env:
+            self.env.pop("GIS_LOCK")
+            os.remove(self.env.pop("GISRC"))
+
+        self.env = clean_grass_path_env(
+            gisbase=self.gisbase, env=self.env, grassbin=None
+        )
+        if self.created_path is not None:
+            shutil.rmtree(self.created_path)
+            self.created_path = None
 
 
 # set path when importing the library

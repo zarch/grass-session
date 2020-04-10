@@ -5,6 +5,7 @@ from grass_session.session import (
     GISBASE,
     GRASSBIN,
     Session,
+    TmpSession,
     clean_grass_path_env,
     get_grass_bin,
     get_grass_gisbase,
