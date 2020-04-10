@@ -1,3 +1,4 @@
+import pathlib
 import tempfile
 import os
 import shutil
@@ -32,7 +33,7 @@ print("done!")
 """
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def tmp_vars(request):
     tmpdir = tempfile.mkdtemp()
     location_name = 'location'
@@ -52,34 +53,46 @@ def tmp_vars(request):
                 grassbin=gs.get_grass_bin())
 
 
-class TestCreate(object):
-    def test_create(self, tmp_vars):
-        gs.grass_create(grassbin=tmp_vars["grassbin"],
-                        path=tmp_vars["location_path"],
-                        create_opts=tmp_vars["create_opts"])
-        # check if PERMANENT has been created
-        assert os.listdir(tmp_vars["location_path"]) == ["PERMANENT", ]
+def __create(grassbin, location_path, create_opts, mapset):
+    gs.grass_create(grassbin=grassbin,
+                    path=location_path,
+                    create_opts=create_opts)
+    # check if PERMANENT has been created
+    assert os.listdir(location_path) == ["PERMANENT", ]
 
-        # check files
-        permanent = os.path.join(tmp_vars["location_path"], "PERMANENT")
-        files = sorted(["DEFAULT_WIND", "MYNAME", "PROJ_EPSG",
-                        "PROJ_INFO", "PROJ_UNITS", "sqlite", "VAR", "WIND"])
-        genfiles = set(os.listdir(permanent))
-        # check that all the generated files are the one required by GRASS GIS
-        for fl in files:
-            assert fl in genfiles
+    # check files
+    permanent = os.path.join(location_path, "PERMANENT")
+    files = sorted(["DEFAULT_WIND", "MYNAME", "PROJ_EPSG",
+                    "PROJ_INFO", "PROJ_UNITS", "sqlite", "VAR", "WIND"])
+    genfiles = set(os.listdir(permanent))
+    # check that all the generated files are the one required by GRASS GIS
+    for fl in files:
+        assert fl in genfiles
 
-        # check PROJ_EPSG content
-        with open(os.path.join(permanent, "PROJ_EPSG"), mode="r") as prj:
-            assert prj.readlines() == ['epsg: 3035\n', ]
+    # check PROJ_EPSG content
+    with open(os.path.join(permanent, "PROJ_EPSG"), mode="r") as prj:
+        assert prj.readlines() == ['epsg: 3035\n', ]
 
-        # check creation of a mapset
-        gs.grass_create(grassbin=tmp_vars["grassbin"], path=tmp_vars["mapset"],
-                        create_opts="")
-        assert os.path.exists(tmp_vars["mapset"]) is True
-        files = sorted(["sqlite", "VAR", "WIND"])
-        genfiles = os.listdir(tmp_vars["mapset"])
-        # check that all the generated files are the one required by GRASS GIS
-        for fl in files:
-            assert fl in genfiles
+    # check creation of a mapset
+    gs.grass_create(grassbin=grassbin, path=mapset, create_opts="")
+    assert os.path.exists(mapset) is True
+    files = sorted(["sqlite", "VAR", "WIND"])
+    genfiles = os.listdir(mapset)
+    # check that all the generated files are the one required by GRASS GIS
+    for fl in files:
+        assert fl in genfiles
+    
+
+def test__grass_create(tmp_vars):
+    __create(grassbin=tmp_vars["grassbin"],
+             location_path=tmp_vars["location_path"],
+             create_opts=tmp_vars["create_opts"],
+             mapset=tmp_vars["mapset"])
+
+
+def test__grasss_create__with_pathlib(tmp_vars):
+    __create(grassbin=pathlib.Path(tmp_vars["grassbin"]),
+             location_path=pathlib.Path(tmp_vars["location_path"]),
+             create_opts=tmp_vars["create_opts"],
+             mapset=pathlib.Path(tmp_vars["mapset"]))
 
