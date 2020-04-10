@@ -14,7 +14,7 @@ import tempfile as tmpfile
 
 
 DEFAULTBIN = "grass{version}"
-DEFAULTGRASSBIN = dict(win32="C:\OSGeo4W\bin\grass{version}svn.bat",
+DEFAULTGRASSBIN = dict(win32=r"C:\OSGeo4W\bin\grass{version}svn.bat",
                        darwin=("/Applications/GRASS/"
                                "GRASS-{version[0]}.{version[1]}.app/"))
 ORIGINAL_ENV = os.environ.copy()
