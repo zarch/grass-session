@@ -5,6 +5,7 @@ from grass_session.session import (
     GISBASE,
     GRASSBIN,
     Session,
+    clean_grass_path_env,
     get_grass_bin,
     get_grass_gisbase,
     get_platform_name,
@@ -14,4 +15,4 @@ from grass_session.session import (
     write_gisrc,
 )
 
-version = "0.1"
+version = "0.4"

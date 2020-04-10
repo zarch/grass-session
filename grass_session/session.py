@@ -12,11 +12,31 @@ import subprocess
 import sys
 import tempfile as tmpfile
 
-DEFAULTBIN = "grass{version}"
-DEFAULTGRASSBIN = dict(
-    win32=r"C:\OSGeo4W\bin\grass{version}svn.bat",
-    darwin=("/Applications/GRASS/" "GRASS-{version[0]}.{version[1]}.app/"),
-)
+if sys.version_info[0] >= 3:
+    from shutil import which
+else:
+    # lazy import
+    from glob import glob
+
+    def which(cmd):
+        # Fallback if default GRASS bin has not been found
+        platform = get_platform_name()
+        path_env = os.environ.get("PATH")
+        path_sep = os.pathsep
+        grassbins = []
+        for dir in path_env.split(path_sep):
+            grass_on_path = glob(os.path.join(dir, cmd))
+            if len(grass_on_path) > 0:
+                for fpath in grass_on_path:
+                    if is_executable(fpath, platform):
+                        grassbins.append(os.path.split(fpath)[1])
+
+        if len(grassbins) > 0:
+            grassbins.sort()
+            grassbin = grassbins[-1]
+            return grassbin
+
+
 ORIGINAL_ENV = os.environ.copy()
 
 
@@ -46,27 +66,47 @@ def get_platform_name():
         raise RuntimeError("unknown platform: '%s'" % sys.platform)
 
 
+def is_executable(fpath, platform):
+    """Returns true if the path 'fpath' points to an executable file.
+    For Windows only .py, .exe, and .bat are treated as accepted executables."""
+    if os.access(fpath, os.X_OK) and os.path.isfile(fpath):
+        if platform == "win32":
+            win_execs = ["py", "bat", "exe"]
+            if "." in fpath:
+                if fpath.split(".")[-1].lower() in win_execs:
+                    is_exec = True
+                else:
+                    is_exec = False
+        else:
+            is_exec = True
+    else:
+        is_exec = False
+    return is_exec
+
+
 def get_grass_bin(version=None):
     """Return the path to the GRASS GIS binary file command.
-    If available takes the value from os.environ GRASSBIN variable."""
+    If available takes the value from os.environ GRASSBIN variable,
+    else the GRASS binary found by which (only Python 3) or the latest GRASS
+    executable on the path."""
+    version = "" if not version else version
     grassbin = os.environ.get("GRASSBIN")
     if grassbin:
         return grassbin
 
-    platform = get_platform_name()
-    grassbin_pattern = DEFAULTGRASSBIN.get(platform, DEFAULTBIN)
+    grassbin_path = which("grass{}".format(version))
+    if grassbin_path:
+        grassbin = os.path.split(grassbin_path)[1]
+        return grassbin
 
-    versions = [version] if version else ["78", "76", "74"]
-    for version in versions:
-        grassbin = grassbin_pattern.format(version=version)
-        try:
-            with open(os.devnull, "w+b") as devnull:
-                subprocess.check_call(
-                    [grassbin, "--config"], stdout=devnull, stderr=subprocess.STDOUT
-                )
-            return grassbin
-        except OSError:
-            pass
+    if not grassbin:
+        raise RuntimeError(
+            (
+                "Cannot find GRASS GIS start script: 'grass{}', "
+                "set the right one using the GRASSBIN environm. "
+                "variable"
+            ).format(version)
+        )
 
 
 def get_grass_gisbase(grassbin=None):
@@ -111,38 +151,51 @@ def set_grass_path_env(gisbase=None, env=None, grassbin=None):
 
     grass_bin = os.path.join(gisbase, "bin")
     if "PATH" in env:
-        env["PATH"] += os.pathsep + grass_bin
+        if grass_bin not in env["PATH"]:
+            env["PATH"] += os.pathsep + grass_bin
     else:
         env["PATH"] = grass_bin
-    env["PATH"] += os.pathsep + os.path.join(gisbase, "scripts")
+
+    if os.path.join(gisbase, "scripts") not in env["PATH"]:
+        env["PATH"] += os.pathsep + os.path.join(gisbase, "scripts")
+
     # add path to GRASS addons
     home = os.path.expanduser("~")
-    env["PATH"] += os.pathsep + os.path.join(home, ".grass7", "addons", "scripts")
+    if os.path.join(home, ".grass7", "addons", "scripts") not in env["PATH"]:
+        env["PATH"] += os.pathsep + os.path.join(home, ".grass7", "addons", "scripts")
+
+    pyversion = sys.version_info[0]
 
     platform = get_platform_name()
     if platform == "win32":
         config_dirname = "GRASS7"
         config_dir = os.path.join(os.getenv("APPDATA"), config_dirname)
-        env["PATH"] += os.pathsep + os.path.join(gisbase, "extrabin")
-        env["GRASS_PYTHON"] = env.get("GRASS_PYTHON", "python.exe")
+        if os.path.join(gisbase, "extrabin") not in env["PATH"]:
+            env["PATH"] += os.pathsep + os.path.join(gisbase, "extrabin")
+        env["GRASS_PYTHON"] = env.get("GRASS_PYTHON", "python{}.exe".format(pyversion))
         env["GRASS_SH"] = os.path.join(gisbase, "msys", "bin", "sh.exe")
     else:
         config_dirname = ".grass7"
         config_dir = os.path.join(home, config_dirname)
-        env["GRASS_PYTHON"] = env.get("GRASS_PYTHON", "python")
+        env["GRASS_PYTHON"] = env.get("GRASS_PYTHON", "python{}".format(pyversion))
 
     addon_base = os.path.join(config_dir, "addons")
     env["GRASS_ADDON_BASE"] = addon_base
-    env["PATH"] += os.pathsep + os.path.join(addon_base, "bin")
+    if os.path.join(addon_base, "bin") not in env["PATH"]:
+        env["PATH"] += os.pathsep + os.path.join(addon_base, "bin")
     if platform != "win32":
-        env["PATH"] += os.pathsep + os.path.join(addon_base, "scripts")
+        if os.path.join(addon_base, "scripts") not in env["PATH"]:
+            env["PATH"] += os.pathsep + os.path.join(addon_base, "scripts")
 
     # define LD_LIBRARY_PATH
     ld_path = os.path.join(gisbase, "lib")
     if "LD_LIBRARY_PATH" not in env:
         env["LD_LIBRARY_PATH"] = ld_path
     else:
-        env["LD_LIBRARY_PATH"] += os.pathsep + ld_path
+        if env["LD_LIBRARY_PATH"] == "":
+            env["LD_LIBRARY_PATH"] = ld_path
+        elif ld_path not in env["LD_LIBRARY_PATH"]:
+            env["LD_LIBRARY_PATH"] += os.pathsep + ld_path
 
     # define GRASS-Python path variable
     pypath = env.get("PYTHONPATH", "")
@@ -152,6 +205,30 @@ def set_grass_path_env(gisbase=None, env=None, grassbin=None):
     if grasspy not in sys.path:
         sys.path.insert(0, grasspy)
 
+    env["LANG"] = "en_US.UTF-8"
+    env["LOCALE"] = "en_US.UTF-8"
+    env["LC_ALL"] = "en_US.UTF-8"
+    return env
+
+
+def clean_grass_path_env(gisbase=None, env=None, grassbin=None):
+    """Remove GRASS version related variables from the environment."""
+    env = os.environ if env is None else env
+    gisbase = gisbase if gisbase else get_grass_gisbase(grassbin=grassbin)
+
+    grass_bin = os.path.join(gisbase, "bin")
+    # Remove from PATH
+    env["PATH"] = env["PATH"].replace(os.pathsep + grass_bin, "")
+    env["PATH"] = env["PATH"].replace(os.pathsep + os.path.join(gisbase, "scripts"), "")
+
+    # Remove from LD_LIBRARY_PATH
+    ld_path = os.path.join(gisbase, "lib")
+    env["LD_LIBRARY_PATH"] = env["LD_LIBRARY_PATH"].replace(os.pathsep + ld_path, "")
+
+    # Remove from PYTHONPATH
+    grasspy = os.path.join(gisbase, "etc", "python")
+    env["PYTHONPATH"] = env["PYTHONPATH"].replace(grasspy, "")
+    env["PYTHONPATH"] = env["PYTHONPATH"].replace(os.pathsep + os.pathsep, os.pathsep)
     return env
 
 
@@ -212,6 +289,7 @@ def grass_init(gisbase, gisdb, location, mapset="PERMANENT", env=None):
     # TODO: should we check if the gisdb, location and mapset are valid?
     # permanent = os.listdir(os.path.join(gisdb, location, "PERMANENT"))
     # mapset = os.listdir(os.path.join(gisdb, location, mapset))
+    load_libs(env["GISBASE"])
     env["GISRC"] = write_gisrc(gisdb, location, mapset)
     return env
 
@@ -237,6 +315,45 @@ def grass_create(grassbin, path, create_opts):
             "{out}\n{err}".format(
                 path=path, create_opts=create_opts, cmd=cmd, out=out, err=err
             )
+        )
+
+
+def load_libs(gisbase=None):
+    # lazy import
+    from glob import glob
+    import ctypes
+
+    # define LD_LIBRARY_PATH
+    gisbase = os.environ["GISBASE"] if not gisbase else gisbase
+    if not gisbase:
+        raise RuntimeError("No gisbase supplied!")
+    ld_path = os.path.join(gisbase, "lib")
+    lib_suffix = "dll" if sys.platform == "win32" else "so"
+    print("Loading libraries from {}".format(ld_path))
+    remains = []
+    grasslibs = glob("{}{}*.{}".format(ld_path, os.path.sep, lib_suffix))
+    if len(grasslibs) == 0:
+        raise RuntimeError("No GRASS GIS libraries found in {}.".format(ld_path))
+    for lib in grasslibs:
+        try:
+            ctypes.CDLL(lib, mode=1)
+        except Exception:
+            remains.append(lib)
+
+    tries_max = len(remains)
+    tries = 1
+    while len(remains) > 0 and tries < tries_max:
+        tries += 1
+        for lib in remains:
+            try:
+                ctypes.CDLL(lib, mode=1)
+                remains.remove(lib)
+            except Exception:
+                pass
+
+    if len(remains) > 0:
+        raise RuntimeError(
+            "Cannot load all the following GRASS GIS libraries from {}!".format(remains)
         )
 
 
@@ -340,6 +457,10 @@ class Session:
             self.env.pop("GIS_LOCK")
             os.remove(self.env.pop("GISRC"))
 
+        self.env = clean_grass_path_env(
+            gisbase=self.gisbase, env=self.env, grassbin=None
+        )
+
     def __enter__(self):
         self.open(*self._aopen, **self._kwopen)
         return self
@@ -348,13 +469,14 @@ class Session:
         self.close()
 
 
-# set path wehn importing the library
+# set path when importing the library
 GRASSBIN = get_grass_bin()
 GISBASE = get_grass_gisbase(grassbin=GRASSBIN)
 set_grass_path_env(GISBASE, env=os.environ, grassbin=GRASSBIN)
-
+load_libs(GISBASE)
 
 if __name__ == "__main__":
-    ggrassbin = get_grass_bin()
-    gisbase = get_grass_gisbase(grassbin=ggrassbin)
+    grassbin = get_grass_bin()
+    gisbase = get_grass_gisbase(grassbin=grassbin)
     env = set_grass_path_env(gisbase=gisbase, env=os.environ)
+    load_libs(gisbase)
