@@ -5,7 +5,7 @@ import shutil
 
 import pytest
 
-import grass_session as gs
+from grass_session import get_grass_bin, grass_create, Session
 
 
 """
@@ -38,6 +38,8 @@ def tmp_vars(request):
     tmpdir = tempfile.mkdtemp()
     location_name = "location"
     location_path = os.path.join(tmpdir, location_name)
+    mapset_name = "test"
+    mapset_path = os.path.join(location_path, mapset_name)
 
     def finalizer():
         print("teardown")
@@ -50,8 +52,9 @@ def tmp_vars(request):
         location_name=location_name,
         location_path=os.path.join(tmpdir, location_name),
         create_opts="EPSG:3035",
-        mapset=os.path.join(location_path, "test"),
-        grassbin=gs.get_grass_bin(),
+        mapset_name=mapset_name,
+        mapset_path=mapset_path,
+        grassbin=get_grass_bin(),
     )
 
 
@@ -93,8 +96,8 @@ def __check_epsg(mapset_path, epsg_code):
         ]
 
 
-def __grass_create(grassbin, location_path, create_opts, mapset):
-    gs.grass_create(grassbin=grassbin, path=location_path, create_opts=create_opts)
+def __grass_create(grassbin, location_path, create_opts, mapset_path):
+    grass_create(grassbin=grassbin, path=location_path, create_opts=create_opts)
     # check if PERMANENT has been created
     __check_PERMANENT_in_folder(location_path)
 
@@ -106,8 +109,8 @@ def __grass_create(grassbin, location_path, create_opts, mapset):
     __check_epsg(permanent, 3035)
 
     # check creation of a mapset
-    gs.grass_create(grassbin=grassbin, path=mapset, create_opts="")
-    __check_mandatory_files_in_mapset(permanent)
+    grass_create(grassbin=grassbin, path=mapset_path, create_opts="")
+    __check_mandatory_files_in_mapset(mapset_path)
 
 
 def test__grass_create(tmp_vars):
@@ -115,14 +118,66 @@ def test__grass_create(tmp_vars):
         grassbin=tmp_vars["grassbin"],
         location_path=tmp_vars["location_path"],
         create_opts=tmp_vars["create_opts"],
-        mapset=tmp_vars["mapset"],
+        mapset_path=tmp_vars["mapset_path"],
     )
 
 
-def test__grasss_create__with_pathlib(tmp_vars):
+def test__grass_create__with_pathlib(tmp_vars):
     __grass_create(
         grassbin=pathlib.Path(tmp_vars["grassbin"]),
         location_path=pathlib.Path(tmp_vars["location_path"]),
         create_opts=tmp_vars["create_opts"],
-        mapset=pathlib.Path(tmp_vars["mapset"]),
+        mapset_path=pathlib.Path(tmp_vars["mapset_path"]),
     )
+
+
+def __Session_create(tmp_vars):
+
+    from grass.pygrass.modules.shortcuts import general as g
+
+    with Session(
+        gisdb=tmp_vars["tmpdir"],
+        location=tmp_vars["location_name"],
+        create_opts=tmp_vars["create_opts"],
+    ) as PERMANENT:
+        # execute some command inside PERMANENT
+        g.mapsets(flags="l")
+        g.list(type="raster", flags="m")
+
+    # check if PERMANENT has been created
+    __check_PERMANENT_in_folder(tmp_vars["location_path"])
+
+    # check files
+    permanent = os.path.join(tmp_vars["location_path"], "PERMANENT")
+    __check_mandatory_files_in_PERMANENT(permanent)
+
+    # check PROJ_EPSG content
+    __check_epsg(permanent, 3035)
+
+    # check creation of a mapset
+    with Session(
+        gisdb=tmp_vars["tmpdir"],
+        location=tmp_vars["location_name"],
+        mapset=tmp_vars["mapset_name"],
+        create_opts="",
+    ) as user:
+        # execute some command inside user
+        g.mapsets(flags="l")
+        g.list(type="raster", flags="m")
+
+    __check_mandatory_files_in_mapset(tmp_vars["mapset_path"])
+
+
+def test__Session__create(tmp_vars):
+    __Session_create(tmp_vars)
+
+
+def test__Session__create__with_pathlib(tmp_vars):
+    tmp_vars.update(
+        dict(
+            grassbin=pathlib.Path(tmp_vars["grassbin"]),
+            location_path=pathlib.Path(tmp_vars["location_path"]),
+            mapset_path=pathlib.Path(tmp_vars["mapset_path"]),
+        )
+    )
+    __Session_create(tmp_vars)
