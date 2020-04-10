@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
-import pathlib
 import shutil
+import sys
 import tempfile
 
 import pytest
@@ -91,7 +91,7 @@ def __check_mandatory_files_in_mapset(mapset_path):
 
 def __check_epsg(mapset_path, epsg_code):
     with open(os.path.join(mapset_path, "PROJ_EPSG"), mode="r") as prj:
-        assert prj.readlines() == [f"epsg: {epsg_code}\n"]
+        assert prj.readlines() == ["epsg: {epsg_code}\n".format(epsg_code=epsg_code)]
 
 
 def __grass_create(grassbin, location_path, create_opts, mapset_path):
@@ -120,7 +120,10 @@ def test__grass_create(tmp_vars):
     )
 
 
+@pytest.mark.skipif(sys.version_info < (3, 6), reason="requires python3.6 or higher")
 def test__grass_create__with_pathlib(tmp_vars):
+    import pathlib
+
     __grass_create(
         grassbin=pathlib.Path(tmp_vars["grassbin"]),
         location_path=pathlib.Path(tmp_vars["location_path"]),
@@ -170,7 +173,10 @@ def test__Session__create(tmp_vars):
     __Session_create(tmp_vars)
 
 
+@pytest.mark.skipif(sys.version_info < (3, 6), reason="requires python3.6 or higher")
 def test__Session__create__with_pathlib(tmp_vars):
+    import pathlib
+
     tmp_vars.update(
         dict(
             grassbin=pathlib.Path(tmp_vars["grassbin"]),

@@ -20,35 +20,30 @@ DEFAULTGRASSBIN = dict(
 ORIGINAL_ENV = os.environ.copy()
 
 
-def get_platform_name(__cache=[None]):
+def get_platform_name():
     """Return an identification string with the platform name, raise
     an exception if the platform is unknown/unsupported."""
 
-    def get_platform():
-        if sys.platform == "win32":
-            return "win32"
-        elif sys.platform.startswith("linux"):
-            return "linux"
-        elif sys.platform.startswith("sunos"):
-            return "solaris"
-        elif sys.platform.startswith("hp-ux"):
-            return "hp-ux"
-        elif sys.platform.startswith("aix"):
-            return "aix"
-        elif sys.platform == "darwin":
-            return "darwin"
-        elif sys.platform.startswith("freebsd"):
-            return "freebsd"
-        elif sys.platform.startswith("openbsd"):
-            return "openbsd"
-        elif sys.platform.startswith("netbsd"):
-            return "netbsd"
-        else:
-            raise RuntimeError("unknown platform: '%s'" % sys.platform)
-
-    if __cache[0] is None:
-        __cache[0] = get_platform()
-    return __cache[0]
+    if sys.platform == "win32":
+        return "win32"
+    elif sys.platform.startswith("linux"):
+        return "linux"
+    elif sys.platform.startswith("sunos"):
+        return "solaris"
+    elif sys.platform.startswith("hp-ux"):
+        return "hp-ux"
+    elif sys.platform.startswith("aix"):
+        return "aix"
+    elif sys.platform == "darwin":
+        return "darwin"
+    elif sys.platform.startswith("freebsd"):
+        return "freebsd"
+    elif sys.platform.startswith("openbsd"):
+        return "openbsd"
+    elif sys.platform.startswith("netbsd"):
+        return "netbsd"
+    else:
+        raise RuntimeError("unknown platform: '%s'" % sys.platform)
 
 
 def get_grass_bin(version=None):

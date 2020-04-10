@@ -55,19 +55,33 @@ Development
 
     $ git clone git@github.com:zarch/grass_session.git
 
-2. Make sure that ``py.test``, and ``tox`` are installed::
+2. Make sure that ``py.test``, ``tox`` and ``pre-commit`` are installed::
 
     $ pip install -r requirements-testing.txt
 
-3. Test locally with ``py.test``::
+3. Install ``pre-commit`` hook in the local repository:
 
-    $ GRASSBIN=~/.local/bin/grass75 PYTHONPATH="`pwd`:$PYTHONPATH" py.test test/py.test test/
+    $ pre-commit install
+
+4. Test locally with ``py.test``::
+
+    $ pytest -vv .
+
+   To see the coverage use:
+
+    $ pytest -v --cov=grass_session --cov-report=html .
+
+   To test with different version of python or grass use:
+
+    $ GRASSBIN=~/.local/bin/grassXX PYTHONPATH="`pwd`:$PYTHONPATH" pytest .
 
 5. Test against multiple Python environments using ``tox``::
 
     $ tox
     ...
-    _________________________________ summary _________________________________
+    _______________________ summary _____________________________
     py27: commands succeeded
     py36: commands succeeded
+    py37: commands succeeded
+    py38: commands succeeded
     congratulations :)
