@@ -12,6 +12,13 @@ matrix:
     allow_failures:
         - python: "nightly"
 
+services:
+  - docker
+
+before_install:
+  - docker pull mundialis/grass-py3-pdal:stable-alpine
+  - docker ps -a
+
 install:
     - pip install -r requirements-testing.txt
 
