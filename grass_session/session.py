@@ -141,7 +141,15 @@ def get_grass_gisbase(grassbin=None):
                 "variable"
             ).format(grassbin=grassbin)
         )
-    return out.decode().strip()
+    gisbase = out.decode().strip()
+    if not os.path.exists(gisbase):
+        raise RuntimeError(
+            (
+                "GRASS GIS start script: {cmd}, "
+                "return as GISBASE a directory ({gisbase}) that do not exist."
+            ).format(cmd=cmd, gisbase=gisbase)
+        )
+    return gisbase
 
 
 def set_grass_path_env(gisbase=None, env=None, grassbin=None):
