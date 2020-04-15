@@ -358,8 +358,9 @@ def load_libs(gisbase=None):
             try:
                 ctypes.CDLL(lib, mode=1)
                 remains.remove(lib)
-            except Exception:
-                pass
+            except Exception as exc:
+                if tries == tries_max:
+                    print(exc)
 
     if len(remains) > 0:
         raise RuntimeError(
