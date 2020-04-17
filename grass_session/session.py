@@ -253,7 +253,7 @@ def write_gisrc(gisdb, location, mapset):
     return gisrc
 
 
-def grass_init(gisbase, gisdb, location, mapset="PERMANENT", env=None):
+def grass_init(gisbase, gisdb, location, mapset="PERMANENT", env=None, loadlibs=False):
     """Initialize system variables to run GRASS modules
 
     This function is for running GRASS GIS without starting it
@@ -299,7 +299,8 @@ def grass_init(gisbase, gisdb, location, mapset="PERMANENT", env=None):
     # TODO: should we check if the gisdb, location and mapset are valid?
     # permanent = os.listdir(os.path.join(gisdb, location, "PERMANENT"))
     # mapset = os.listdir(os.path.join(gisdb, location, mapset))
-    load_libs(env["GISBASE"])
+    if loadlibs:
+        load_libs(env["GISBASE"])
     env["GISRC"] = write_gisrc(gisdb, location, mapset)
     return env
 
@@ -403,7 +404,9 @@ class Session(object):
         self._aopen = aopen
         self._kwopen = kwopen
 
-    def open(self, gisdb, location, mapset=None, create_opts=None, env=None):
+    def open(
+        self, gisdb, location, mapset=None, create_opts=None, env=None, loadlibs=False
+    ):
         """Open or create GRASS GIS mapset.
 
         Parameters
@@ -445,7 +448,9 @@ class Session(object):
             else:
                 path = mpath
             self.create(path, create_opts=create_opts)
-        return grass_init(self.gisbase, gisdb, location, mapset, env=env)
+        return grass_init(
+            self.gisbase, gisdb, location, mapset, env=env, loadlibs=loadlibs
+        )
 
     def create(self, path, create_opts):
         """Create a new mapset
@@ -513,10 +518,9 @@ class TmpSession(Session):
 GRASSBIN = get_grass_bin()
 GISBASE = get_grass_gisbase(grassbin=GRASSBIN)
 set_grass_path_env(GISBASE, env=os.environ, grassbin=GRASSBIN)
-load_libs(GISBASE)
+
 
 if __name__ == "__main__":
     grassbin = get_grass_bin()
     gisbase = get_grass_gisbase(grassbin=grassbin)
     env = set_grass_path_env(gisbase=gisbase, env=os.environ)
-    load_libs(gisbase)
