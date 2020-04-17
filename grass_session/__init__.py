@@ -16,4 +16,4 @@ from grass_session.session import (
     write_gisrc,
 )
 
-version = "0.4"
+version = "0.5"
