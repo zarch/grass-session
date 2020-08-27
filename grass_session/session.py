@@ -141,7 +141,7 @@ def get_grass_gisbase(grassbin=None):
                 "variable"
             ).format(grassbin=grassbin)
         )
-    gisbase = out.decode().strip()
+    gisbase = out.decode().strip().split('\n')[-1]
     if not os.path.exists(gisbase):
         raise RuntimeError(
             (
