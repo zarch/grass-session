@@ -174,6 +174,12 @@ def set_grass_path_env(gisbase=None, env=None, grassbin=None):
     if os.path.join(home, ".grass7", "addons", "scripts") not in env["PATH"]:
         env["PATH"] += os.pathsep + os.path.join(home, ".grass7", "addons", "scripts")
 
+    # add paths to custom GRASS addons
+    if "GRASS_ADDON_PATH" in env:
+        for addon_path in env["GRASS_ADDON_PATH"].split(os.pathsep):
+            if addon_path not in env["PATH"]:
+                env["PATH"] += os.pathsep + addon_path
+
     pyversion = sys.version_info[0]
 
     platform = get_platform_name()
