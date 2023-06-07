@@ -313,7 +313,7 @@ def grass_init(gisbase, gisdb, location, mapset="PERMANENT", env=None, loadlibs=
 
 def grass_create(grassbin, path, create_opts):
     """Create a new location/mapset"""
-    cmd = "{grassbin} -c {create_opts} -e {path}" "".format(
+    cmd = '{grassbin} -c {create_opts} -e "{path}"'.format(
         grassbin=grassbin, create_opts=create_opts, path=path
     )
     proc = subprocess.Popen(
